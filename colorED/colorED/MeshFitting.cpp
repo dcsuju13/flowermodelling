@@ -158,9 +158,9 @@ void MeshFitting::buildMesh(vector<coor> sample, vector<coor> tri)
 	//?meshviewer不能打开
 	try
 	{
-		if (!OpenMesh::IO::write_mesh(all_mesh, "all.ply"))
+		if (!OpenMesh::IO::write_mesh(all_mesh, "file\\all.ply"))
 		{
-			std::cerr << "Cannot write mesh to file 'mesh.ply'" << std::endl;
+			std::cerr << "Cannot write mesh to file 'file\\all.ply'" << std::endl;
 			//return;
 		}
 	}
@@ -672,4 +672,11 @@ MyMesh MeshFitting::getOccmesh()
 void MeshFitting::setKeypoints(vector<coorTag> k)
 {
 	keypoints = k;
+}
+
+int MeshFitting::getDiv()
+{
+	int div;
+	div = (all_sample[0].size() - 2) / 3;
+	return div;
 }

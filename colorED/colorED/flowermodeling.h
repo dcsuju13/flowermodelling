@@ -18,6 +18,7 @@
 #include "PetalTemplate.h"
 #include "MeshFitting.h"
 #include "MultLayer.h"
+#include "Texture.h"
 #include "ui_flowermodeling.h"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -48,6 +49,7 @@ private slots:
 	void on_Button_mesh2_clicked();
 	void on_Button_mult_clicked();
 	void on_Button_Occ_clicked();
+	void on_Button_Texture_clicked();
 
 private:
 	Ui::flowermodelingClass ui;
@@ -64,6 +66,9 @@ private:
 	PetalTemplate template_p;//comefitting部分实例
 	MeshFitting meshfit;//meshfitting部分实例
 	MultLayer mult;//合并多层部分实例
+	Texture tex;//纹理部分实例
+
+	MyMesh mesh;
 };
 
 #endif // flowermodeling_H

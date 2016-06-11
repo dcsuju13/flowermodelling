@@ -45,9 +45,11 @@ public:
 
 	void setMesh(MyMesh mesh);//设置网格信息
 	void setoption(int op);
+	void setMatchtex(vector<QPoint> v);//设置索引
 private:
 	void initializeGL();
 	void resizeGL(int width, int height);
+	void loadGLTexture();
 	void paintGL();
 	void mousePressEvent(QMouseEvent *event);
 	void mouseMoveEvent(QMouseEvent *event);
@@ -59,6 +61,8 @@ private:
 	vector<coor> contour_p;//花瓣轮廓
 	
 	MyMesh petal_mesh;//网格
+	vector<coor> points;//点
+	vector<coor> face;//面
 
 	GLfloat rotationX;
 	GLfloat rotationY;
@@ -69,7 +73,10 @@ private:
 	QPoint lastPos;
 
 	int option = 0;//操作选项
+	GLuint texture[1];
 
+	vector<QPoint> match_tex;//纹理索引
+	int gheight, gwidth;
 	
 
 

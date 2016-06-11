@@ -7,7 +7,7 @@ flowermodeling::flowermodeling(QWidget *parent)
 	this->image = new QImage();
 	this->template_p = PetalTemplate();
 	//this->scene = new QGraphicsScene();
-	
+	CreateDirectory(TEXT("file"), NULL);//创建文件夹
 
 	ui.Slider_brush->setMinimum(0);
 	ui.Slider_brush->setMaximum(100);
@@ -197,7 +197,7 @@ void flowermodeling::on_Button_mesh_clicked()
 	this->meshfit = MeshFitting(alltemplate,contourTag);
 
 	MyGL *gl = new MyGL();
-	MyMesh mesh = meshfit.getAllmesh();
+	mesh = meshfit.getAllmesh();
 	gl->setMesh(mesh);
 	gl->setoption(2);
 	ui.scrollArea_mesh->setWidget(gl);
@@ -209,7 +209,7 @@ void flowermodeling::on_Button_meshfitting_clicked()
 {
 	double h = template_p.getMinh();
 	meshfit.setMinh(h);
-	MyMesh mesh = meshfit.getMvmesh();
+	mesh = meshfit.getMvmesh();
 	MyGL *gl = new MyGL();
 	gl->setMesh(mesh);
 	gl->setoption(2);
@@ -222,7 +222,7 @@ void flowermodeling::on_Button_meshfitting_clicked()
 void flowermodeling::on_Button_Occ_clicked()
 {
 	meshfit.setKeypoints(edgedetect.getKeypoints());
-	MyMesh mesh = meshfit.getOccmesh();
+	mesh = meshfit.getOccmesh();
 	MyGL *gl = new MyGL();
 	gl->setMesh(mesh);
 	gl->setoption(2);
@@ -230,6 +230,24 @@ void flowermodeling::on_Button_Occ_clicked()
 	QString str = "mesh fitting finished!\nsaved as all.ply";
 	ui.label_state->setText(str);
 
+	return;
+}
+
+void flowermodeling::on_Button_Texture_clicked()
+{
+	tex = Texture();
+	tex.set_center(edgedetect.getF_o());	
+	tex.set_keypoints(edgedetect.getKeyChain());
+	tex.set_contour(edgedetect.getContourpic());
+	tex.set_div(meshfit.getDiv());
+	tex.Docaculate();
+
+	MyGL *gl = new MyGL();
+	gl->setMesh(mesh);
+	gl->setoption(2);
+	gl->setMatchtex(tex.get_match());
+
+	ui.scrollArea_mesh->setWidget(gl);
 	return;
 }
 

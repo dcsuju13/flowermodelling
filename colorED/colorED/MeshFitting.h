@@ -31,6 +31,7 @@ public:
 	MyMesh getAllmesh();//获得原始完整花网格
 	MyMesh getMvmesh();//获得变形后完整花轮廓
 	MyMesh getOccmesh();//获得遮挡变形后完整花轮廓
+	int getDiv();//获得采样点分的层数
 private:
 	void triMeshAll();//生成索引
 	void buildMesh(vector<coor> sample,vector<coor> tri);//构造网格

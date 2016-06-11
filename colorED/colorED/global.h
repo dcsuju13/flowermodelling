@@ -48,4 +48,6 @@ struct arraylist
 	float l;
 	struct arraylist *next;
 };
+
+extern coor t;
 #endif

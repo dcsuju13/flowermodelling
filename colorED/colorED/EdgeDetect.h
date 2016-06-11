@@ -23,8 +23,10 @@ public:
 	QPointF getF_o();
 	QPointF getO();
 	vector<coor> getContour();
+	vector<Vec2i> getContourpic();
 	vector<coorTag> getKeypoints();
 	vector<QPointF> getKeypic();
+	vector<Vec3i> getKeyChain();
 	int getRadius();
 	int getHeight();
 	double getAngle();
@@ -43,8 +45,10 @@ private:
 	QPointF f_o;
 	QPointF o;
 	vector<coor> contour;//轮廓点在圆锥坐标
+	vector<Vec2i> EdgeChain;//轮廓点在图像坐标
 	vector<coorTag> keypoints;//顶点+凹点在圆锥坐标
 	vector<QPointF> keypicture;//顶点凹点在图上坐标
+	vector<Vec3i> KeyChain;//顶点+凹点在图上坐标，还有标记
 
 	//圆锥半径和高度
 	int radius;

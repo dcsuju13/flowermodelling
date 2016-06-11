@@ -1018,13 +1018,13 @@ void EdgeDetect::caculateEdge()
 		}
 		printf("%d\n", i * 5);
 	}
-	vector<Vec2i> EdgeChain = CEDContours(ResultL);
+	EdgeChain = CEDContours(ResultL);
 	EdgeChain.erase(EdgeChain.begin() + EdgeChain.size() - 1);
 	Mat EdgeChainMap(height, weight, CV_32SC1, Scalar(0));
 	for (int i = 0; i < EdgeChain.size(); i++)
 		EdgeChainMap.at<int>(EdgeChain[i](0), EdgeChain[i](1)) = 1;
 	imwrite("EdgeL.jpg", EdgeChainMap * 255);
-	vector<Vec3i> KeyChain = GetKeyPoint(EdgeChain, CircleCentre);
+    KeyChain = GetKeyPoint(EdgeChain, CircleCentre);
 
 	//ฤฺฑ฿ิต
 	KeyChain = govalley(AllEdgeL, KeyChain, EdgeChain, CircleCentre);
@@ -1191,4 +1191,14 @@ int EdgeDetect::getHeight()
 double EdgeDetect::getAngle()
 {
 	return angle;
+}
+
+vector<Vec2i> EdgeDetect::getContourpic()
+{
+	return EdgeChain;
+}
+
+vector<Vec3i> EdgeDetect::getKeyChain()
+{
+	return KeyChain;
 }
