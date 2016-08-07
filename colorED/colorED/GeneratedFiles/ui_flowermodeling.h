@@ -64,6 +64,7 @@ public:
     QPushButton *Button_mesh;
     QLabel *label_state;
     QPushButton *Button_Occ;
+    QPushButton *Button_Texture;
     QWidget *tab_multi;
     QGridLayout *gridLayout_6;
     QLineEdit *Edit_mesh1;
@@ -181,7 +182,7 @@ public:
         scrollArea_cone->setWidgetResizable(true);
         scrollAreaWidgetContents_2 = new QWidget();
         scrollAreaWidgetContents_2->setObjectName(QStringLiteral("scrollAreaWidgetContents_2"));
-        scrollAreaWidgetContents_2->setGeometry(QRect(0, 0, 621, 530));
+        scrollAreaWidgetContents_2->setGeometry(QRect(0, 0, 98, 28));
         scrollArea_cone->setWidget(scrollAreaWidgetContents_2);
 
         gridLayout_4->addWidget(scrollArea_cone, 0, 0, 1, 2);
@@ -223,6 +224,11 @@ public:
 
         gridLayout_5->addWidget(Button_Occ, 3, 0, 1, 1);
 
+        Button_Texture = new QPushButton(tab_mesh);
+        Button_Texture->setObjectName(QStringLiteral("Button_Texture"));
+
+        gridLayout_5->addWidget(Button_Texture, 3, 1, 1, 1);
+
         tabWidget->addTab(tab_mesh, QString());
         tab_multi = new QWidget();
         tab_multi->setObjectName(QStringLiteral("tab_multi"));
@@ -260,7 +266,7 @@ public:
         scrollArea_mult->setWidgetResizable(true);
         scrollAreaWidgetContents_4 = new QWidget();
         scrollAreaWidgetContents_4->setObjectName(QStringLiteral("scrollAreaWidgetContents_4"));
-        scrollAreaWidgetContents_4->setGeometry(QRect(0, 0, 621, 472));
+        scrollAreaWidgetContents_4->setGeometry(QRect(0, 0, 98, 28));
         scrollArea_mult->setWidget(scrollAreaWidgetContents_4);
 
         gridLayout_6->addWidget(scrollArea_mult, 0, 0, 1, 2);
@@ -288,7 +294,7 @@ public:
 
         retranslateUi(flowermodelingClass);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(2);
 
 
         QMetaObject::connectSlotsByName(flowermodelingClass);
@@ -310,6 +316,7 @@ public:
         Button_mesh->setText(QApplication::translate("flowermodelingClass", "\347\224\237\346\210\220\347\275\221\346\240\274", 0));
         label_state->setText(QString());
         Button_Occ->setText(QApplication::translate("flowermodelingClass", "\351\201\256\346\214\241\345\217\230\345\275\242", 0));
+        Button_Texture->setText(QApplication::translate("flowermodelingClass", "\347\272\271\347\220\206\350\264\264\345\233\276", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_mesh), QApplication::translate("flowermodelingClass", "mesh fitting", 0));
         Button_mesh1->setText(QApplication::translate("flowermodelingClass", "\351\200\211\346\213\251\347\275\221\346\240\2741", 0));
         Button_mesh2->setText(QApplication::translate("flowermodelingClass", "\351\200\211\346\213\251\347\275\221\346\240\2742", 0));

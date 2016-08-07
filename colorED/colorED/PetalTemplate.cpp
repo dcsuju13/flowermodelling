@@ -203,7 +203,12 @@ void PetalTemplate::coneTemplate()
 			nowpetal.push_back(contour[j]);
 			if (fabs(contour[j].x - vallypoints[i].x) < 0.001&&fabs(contour[j].y - vallypoints[i].y) < 0.001
 				&&fabs(contour[j].z - vallypoints[i].z) < 0.001)//凹点跳出，此时完成一个花瓣轮廓
+			{
+				j++;
 				break;
+
+			}
+				
 		}
 		petal p = { tip, nowpetal };
 		contourTag.push_back(p);//存储一个花瓣信息

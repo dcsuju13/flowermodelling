@@ -5,9 +5,10 @@ EdgeDetect::EdgeDetect()
 {
 }
 
-EdgeDetect::EdgeDetect(QPointF fcenter)
+EdgeDetect::EdgeDetect(QPointF fcenter,int count)
 {
 	f_o = fcenter;
+	areanumber = count;
 }
 
 EdgeDetect::~EdgeDetect()
@@ -482,7 +483,7 @@ vector<Vec2i> EdgeDetect::ConnectNode(int type, vector<Vec2i> TargrtChain, vecto
 	}
 	Vec2i T = TargrtChain[0], S = EdgeChain[EdgeChain.size() - 1];
 
-	if (T != EdgeChain[0])
+	if (T != EdgeChain[0] && EdgeChain.size() != 1 && TargrtChain.size() != 1)
 	{
 		float mindistpre = powf(powf(T(0) - S(0), 2) + powf(T(1) - S(1), 2), 0.5);
 		int mindistpreid = EdgeChain.size() - 1;
@@ -503,25 +504,52 @@ vector<Vec2i> EdgeDetect::ConnectNode(int type, vector<Vec2i> TargrtChain, vecto
 	int startnumber = 0;  //targetchain开始的位置
 	//链接起始点和终止点
 	Vec2i np = S;
+	float argKy = T(1) - S(1);
+	float argKx = T(0) - S(0);
+	float argKe = argKy / argKx;
+	float argK = atan(argKe);
 	while (np != T)
 	{
 		float mindist = powf(powf(T(0) - np(0), 2) + powf(T(1) - np(1), 2), 0.5);
+		float minargK = 100;
 		int npx = np(0), npy = np(1);
-		for (int i = -1; i <= 1; i++) // 慢慢走过去
-		for (int j = -1; j <= 1; j++)
-		{
-			float ndist = powf(powf(T(0) - (npx + i), 2) + powf(T(1) - (npy + j), 2), 0.5);
-			if (ndist < mindist)
+		for (int i = -1; i <= 1; i++) // 慢慢走过去,角度最接近且距离在缩短
+			for (int j = -1; j <= 1; j++)
 			{
-				mindist = ndist;
-				np = { npx + i, npy + j };
+				float ndist = powf(powf(T(0) - (npx + i), 2) + powf(T(1) - (npy + j), 2), 0.5);
+				if (npx + i != T(0) || npy + j != T(1))
+				{
+					float argP;
+					float argPy = T(1) - npy - j;
+					float argPx = T(0) - npx - i;
+					float argPe = argPy / argPx;
+					if (T(0) == npx + i)
+					{
+						if (T(1) < npy + j)
+							argP = 3.1416926 / 2;
+						else
+							argP = 3.1415926 / 2 * 3;
+					}
+					else
+						argP = atan(argPe);
+					float argdelta = abs(argP - argK);
+					if (ndist < mindist && argdelta < minargK)
+					{
+						minargK = argdelta;
+						np = { npx + i, npy + j };
+					}
+				}
+				else
+				{
+					np = T;
+					break;
+				}
 			}
-		}
 
 		if (EdgeL.at<int>(np(0), np(1)) == 1)
-		for (int i = 0; i < TargrtChain.size(); i++)
-		if (TargrtChain[i] == np)
-			startnumber = i;
+			for (int i = 0; i < TargrtChain.size(); i++)
+				if (TargrtChain[i] == np)
+					startnumber = i;
 
 		if (startnumber != 0)
 			break;
@@ -537,10 +565,11 @@ vector<Vec2i> EdgeDetect::ConnectNode(int type, vector<Vec2i> TargrtChain, vecto
 	return EdgeChain;
 }
 
-vector<Vec2i> EdgeDetect::CEDContours(Mat ResultL)
+vector<Vec2i> EdgeDetect::CEDContours(Mat ResultL, int areaunmber, Vec2i CircleCentre)
 {
 	int height = ResultL.rows;
 	int weight = ResultL.cols;
+
 	Mat DirectL(height, weight, CV_32SC1, Scalar(0));
 	Mat EdgeL(height, weight, CV_32SC1, Scalar(0));
 	Mat OutPut(height, weight, CV_32SC1, Scalar(0));
@@ -720,36 +749,41 @@ vector<Vec2i> EdgeDetect::CEDContours(Mat ResultL)
 
 	//最终阶段，删除垃圾边
 	int sigma = 0;
-	int max = 0;
 	for (int i = 0; i < edgepoint.size(); i++)
 	{
 		int edgesize = edgepoint[i].size();
 		sigma += edgesize;
+	}
+	//printf("%d边最长，长度:%d", max, edgepoint[max].size());
+	sigma = sigma / edgepoint.size();
+	//vector<Vec2i> EdgeChain = edgepoint[max];
+	//edgepoint.erase(edgepoint.begin() + max);
+
+	//printf("sigema ：%d ", sigma);
+	for (int i = 0; i < edgepoint.size(); i++)
+	{
+		if (edgepoint[i].size() < sigma + 25)
+		{
+			edgepoint.erase(edgepoint.begin() + i);
+			i = i-1;
+		}
+	}
+
+	int max = 0;
+	for (int i = 0; i < edgepoint.size(); i++)
+	{
 		if (edgepoint[i].size() > edgepoint[max].size())
 		{
 			max = i;
 		}
 	}
-	//printf("%d边最长，长度:%d", max, edgepoint[max].size());
-	sigma = sigma / edgepoint.size();
-	vector<Vec2i> EdgeChain = edgepoint[max];
-	edgepoint.erase(edgepoint.begin() + max);
 
-	//printf("sigema ：%d ", sigma);
+	EdgeL = 0;
 	for (int i = 0; i < edgepoint.size(); i++)
-	{
-		if (edgepoint[i].size()  < sigma)
-		{
-			for (int j = 0; j < edgepoint[i].size(); j++)
-			{
-				EdgeL.at<int>(edgepoint[i][j](0), edgepoint[i][j](1)) = 0;
-			}
-			edgepoint.erase(edgepoint.begin() + i);
-			i = i - 1;
-			//printf("剩余边个数: %d \n", edgepoint.size());
-		}
-	}
-	imwrite("EdgeL.jpg", EdgeL * 255);
+		for (int j = 0; j < edgepoint[i].size(); j++)
+			EdgeL.at<int>(edgepoint[i][j](0), edgepoint[i][j](1)) = 1;
+	imwrite("EdgeLTEST.jpg", EdgeL * 255);
+
 	//开始连线
 	////test-------------------------------------------------
 	//for (int i = 0; i < EdgeChain.size(); i++)
@@ -758,64 +792,384 @@ vector<Vec2i> EdgeDetect::CEDContours(Mat ResultL)
 	//}
 	//imwrite("Test.jpg", OutPut * 255);
 
-	while (!edgepoint.empty())
+	vector<Vec2i> EdgeChain;
+	if (areaunmber == 1)  //单层连线逻辑-环路
 	{
-		int Minid = -1;
-		int type = 0;
-		//printf("S:%d,%d  E:%d,%d", EdgeChain[0](0), EdgeChain[0](1), EdgeChain[EdgeChain.size() - 1](0), EdgeChain[EdgeChain.size() - 1](1));
-		float edgechaindist = powf(powf(EdgeChain[0](0) - EdgeChain[EdgeChain.size() - 1](0), 2) + powf(EdgeChain[0](1) - EdgeChain[EdgeChain.size() - 1](1), 2), 0.5);
-		//搜索附近节点中，长度最大的节点，同时记录长度最长的边的长度
-		float Maxsize = 0;
-		for (int s = 1; s * 50 < min(weight, height); s++) // 逐渐扩大搜索范围
+		EdgeChain = edgepoint[max];
+		OutPut = 0;
+		for (int i = 0; i < EdgeChain.size(); i++)
 		{
-			for (int i = 0; i < edgepoint.size(); i++)
+			OutPut.at<int>(EdgeChain[i](0), EdgeChain[i](1)) = 1;
+		}
+		imwrite("OutPut.jpg", OutPut * 255);
+		edgepoint.erase(edgepoint.begin() + max);
+
+		//printf("sigema ：%d ", sigma);
+		for (int i = 0; i < edgepoint.size(); i++)
+		{
+			if (edgepoint[i].size() < sigma)
 			{
-				float dist1 = powf(powf(EdgeChain[EdgeChain.size() - 1](0) - edgepoint[i][0](0), 2) + powf(EdgeChain[EdgeChain.size() - 1](1) - edgepoint[i][0](1), 2), 0.5);
-				float dist2 = powf(powf(EdgeChain[EdgeChain.size() - 1](0) - edgepoint[i][edgepoint[i].size() - 1](0), 2) + powf(EdgeChain[EdgeChain.size() - 1](1) - edgepoint[i][edgepoint[i].size() - 1](1), 2), 0.5);
-				float dist = min(dist1, dist2);
-				float chaindist = powf(powf(EdgeChain[0](0) - EdgeChain[EdgeChain.size() - 1](0), 2) + powf(EdgeChain[0](1) - EdgeChain[EdgeChain.size() - 1](1), 2), 0.5);
-				int size = edgepoint[i].size();
-				if (chaindist > 50)
+				edgepoint.erase(edgepoint.begin() + i);
+				i = i - 1;
+				//printf("剩余边个数: %d \n", edgepoint.size());
+			}
+		}
+
+		while (!edgepoint.empty())
+		{
+			int Minid = -1;
+			int type = 0;
+			//printf("S:%d,%d  E:%d,%d", EdgeChain[0](0), EdgeChain[0](1), EdgeChain[EdgeChain.size() - 1](0), EdgeChain[EdgeChain.size() - 1](1));
+			float edgechaindist = powf(powf(EdgeChain[0](0) - EdgeChain[EdgeChain.size() - 1](0), 2) + powf(EdgeChain[0](1) - EdgeChain[EdgeChain.size() - 1](1), 2), 0.5);
+			//搜索附近节点中，长度最大的节点，同时记录长度最长的边的长度
+			int Maxsize = 0;
+			for (int s = 1; s * 25 < min(weight, height); s++) // 逐渐扩大搜索范围
+			{
+				for (int i = 0; i < edgepoint.size(); i++)
 				{
-					if (dist < s * 50 && dist <  edgechaindist)
+					Vec2i SP = EdgeChain[EdgeChain.size() - 1];
+					Vec2i TP1 = edgepoint[i][0];
+					Vec2i TP2 = edgepoint[i][edgepoint[i].size() - 1];
+					float dist1 = powf(powf(SP(0) - TP1(0), 2) + powf(SP(1) - TP1(1), 2), 0.5);
+					float dist2 = powf(powf(SP(0) - TP2(0), 2) + powf(SP(1) - TP2(1), 2), 0.5);
+					float dist = min(dist1, dist2);
+					float chaindist = powf(powf(EdgeChain[0](0) - EdgeChain[EdgeChain.size() - 1](0), 2) + powf(EdgeChain[0](1) - EdgeChain[EdgeChain.size() - 1](1), 2), 0.5);
+					int size = edgepoint[i].size();
+					if (chaindist > 25)
 					{
-						if (size > Maxsize)
+						if (dist < s * 25 && dist <  edgechaindist)
 						{
-							if (dist1 == min(dist1, dist2))
+							if (size > Maxsize)
 							{
-								type = 1;
+								if (dist1 == min(dist1, dist2))
+								{
+									type = 1;
+								}
+								else type = 0;
+								Maxsize = size;
+								Minid = i;
 							}
-							else type = 0;
-							Maxsize = edgepoint[i].size();
-							Minid = i;
 						}
 					}
 				}
+				if (Minid != -1)
+					break;
 			}
-			if (Minid != -1)
+			//如果这个权值中的距离小于开始节点和结束节点的距离，跳出
+			if (Minid == -1)
+			{
+				vector<Vec2i> EndChain;
+				EndChain.push_back(EdgeChain[0]);
+				EdgeChain = ConnectNode(1, EndChain, EdgeChain, EdgeL);
 				break;
+			}
+			else
+			{
+				EdgeChain = ConnectNode(type, edgepoint[Minid], EdgeChain, EdgeL);
+				edgepoint.erase(edgepoint.begin() + Minid);
+			}
+			////连接节点，将路径上所有点添加（如果在中间碰到边，看看是不是目标边，是的话就从这里开始）
+			OutPut = 0;
+			for (int i = 0; i < EdgeChain.size(); i++)
+			{
+				OutPut.at<int>(EdgeChain[i](0), EdgeChain[i](1)) = 1;
+			}
+			imwrite("OutPut.jpg", OutPut * 255);
 		}
-		//如果这个权值中的距离小于开始节点和结束节点的距离，跳出
-		if (Minid == -1)
-		{
-			vector<Vec2i> EndChain;
-			EndChain.push_back(EdgeChain[0]);
-			EdgeChain = ConnectNode(1, EndChain, EdgeChain, EdgeL);
-			break;
-		}
-		else
-		{
-			EdgeChain = ConnectNode(type, edgepoint[Minid], EdgeChain, EdgeL);
-			edgepoint.erase(edgepoint.begin() + Minid);
-		}
-		////连接节点，将路径上所有点添加（如果在中间碰到边，看看是不是目标边，是的话就从这里开始）
-		//for (int i = 0; i < EdgeChain.size(); i++)
-		//{
-		//	OutPut.at<int>(EdgeChain[i](0), EdgeChain[i](1)) = 1;
-		//}
-		//imwrite("AllEdgeL.jpg", EdgeL * 255);
 	}
+	else //多层连线逻辑-最近点
+	{
+		Vec2i PreEdgeP1, PreEdgeP2;
+		//循环-边缘区域编号
+		Vec2i SP1, SP2;
+		for (int i = 0; i < areaunmber; i++)
+		{
+			//读取区域位置
+			string prename = "edgearea", typen = ".jpg", id;
+			stringstream ids;
+			ids << i;
+			ids >> id;
+			string allfilename = prename + id + typen;
+			Mat maskM = imread(allfilename);
+			Mat maskMG;
+			maskMG = 0;
+			cvtColor(maskM, maskMG, CV_RGB2GRAY);
+			maskMG.convertTo(maskMG, CV_32FC1);
+			if (id == "1")
+			{
+				imwrite("maskMG.jpg", maskMG);
+			}
 
+			//输出所有线段
+			OutPut = 0;
+			for (int j = 0; j < edgepoint.size(); j++)
+				for (int k = 0; k < edgepoint[j].size(); k++)
+					OutPut.at<float>(edgepoint[j][k][0], edgepoint[j][k][1]) = 1;
+			imwrite("OutPut.jpg", OutPut);
+			//筛选线段
+			vector<vector<Vec2i>> MKP;
+			for (int j = 0; j < edgepoint.size(); j++)
+			{
+				//对每条线段遍历所有点，生成在区域中的新线段并加入MKP中
+				bool line = false;
+				vector<Vec2i> mkpline;
+				for (int k = 0; k < edgepoint[j].size(); k++)
+				{
+					if (maskMG.at<float>(edgepoint[j][k][0], edgepoint[j][k][1]) != 0)
+					{
+						line = true;
+						mkpline.push_back(edgepoint[j][k]);
+					}
+					else if (line == true && mkpline.size() > 20)
+						break;
+					else if (line == true)
+					{
+						mkpline.clear();
+					}
+				}
+				if (mkpline.size() != 0)
+					MKP.push_back(mkpline);
+				/*if (maskMG.at<float>(edgepoint[j][0][0], edgepoint[j][0][1]) != 0 && maskMG.at<float>(edgepoint[j][edgepoint[j].size() - 1][0], edgepoint[j][edgepoint[j].size() - 1][1]) != 0)
+					MKP.push_back(edgepoint[j]);*/
+			}
+			//输出筛选后的线段集合
+			OutPut = 0;
+			for (int j = 0; j < MKP.size();j++)
+			for (int k = 0; k < MKP[j].size(); k++)
+				OutPut.at<int>(MKP[j][k][0], MKP[j][k][1]) = 1;
+			imwrite("OutPut0.jpg", OutPut*255);
+			//定位最近边
+			vector<Vec2i> MinEdge1 = MKP[0];
+			float PCdist = sqrt(pow(MinEdge1[0][0] - CircleCentre[0], 2) + pow(MinEdge1[0][1] - CircleCentre[1], 2));
+			int minid = 0;
+			for (int j = 0; j < MKP.size(); j++)
+			{
+				float Tdist1 = sqrt(pow(MKP[j][0][0] - CircleCentre[0], 2) + pow(MKP[j][0][1] - CircleCentre[1], 2));
+				float Tdist2 = sqrt(pow(MKP[j][MKP[j].size() - 1][0] - CircleCentre[0], 2) + pow(MKP[j][MKP[j].size() - 1][1] - CircleCentre[1], 2));
+				if (Tdist1 < PCdist || Tdist2 < PCdist)
+				{
+					PCdist = min(Tdist1, Tdist2);
+					MinEdge1 = MKP[j];
+					minid = j;
+				}
+			}
+			MKP.erase(MKP.begin() + minid);
+			//MinEdge1 重新排序
+			float MEdist1 = sqrt(pow(MinEdge1[0][0] - CircleCentre[0], 2) + pow(MinEdge1[0][1] - CircleCentre[1], 2));
+			float MEdist2 = sqrt(pow(MinEdge1[MinEdge1.size() - 1][0] - CircleCentre[0], 2) + pow(MinEdge1[MinEdge1.size() - 1][1] - CircleCentre[1], 2));
+			if (MEdist1 > MEdist2)
+			{
+				vector<Vec2i> TEMPv;
+				for (int i = 1; i <= MinEdge1.size(); i++)
+				{
+					TEMPv.push_back(MinEdge1[MinEdge1.size() - i]);
+				}
+				MinEdge1 = TEMPv;
+			}
+			//定位另一边的最近边
+			if (MKP.size() != 0)
+			{
+				minid = 0;
+				vector<Vec2i> MinEdge2 = MKP[0];
+				PCdist = sqrt(pow(MinEdge2[0][0] - CircleCentre[0], 2) + pow(MinEdge2[0][1] - CircleCentre[1], 2));
+				int bm = -1;
+				Vec2i TargetP;
+				for (int s = 50; s > 20; s = s - 20)
+				{
+					for (int j = 0; j < MKP.size(); j++)
+					{
+						float PPdist1 = sqrt(pow(MKP[j][0][0] - MinEdge1[0][0], 2) + pow(MKP[j][0][1] - MinEdge1[0][1], 2));
+						float PPdist2 = sqrt(pow(MKP[j][MKP[j].size() - 1][0] - MinEdge1[0][0], 2) + pow(MKP[j][MKP[j].size() - 1][1] - MinEdge1[0][1], 2));
+						if (PPdist1 > s || PPdist2 > s)
+						{
+							float Tdist;
+							float Tdist1 = sqrt(pow(MKP[j][0][0] - CircleCentre[0], 2) + pow(MKP[j][0][1] - CircleCentre[1], 2));
+							float Tdist2 = sqrt(pow(MKP[j][MKP[j].size() - 1][0] - CircleCentre[0], 2) + pow(MKP[j][MKP[j].size() - 1][1] - CircleCentre[1], 2));
+							if (PPdist1 > s && PPdist2 > s)
+								Tdist = min(Tdist1, Tdist2);
+							else if (PPdist1 > s)
+								Tdist = Tdist1;
+							else if (PPdist2 > s)
+								Tdist = Tdist2;
+							if (Tdist < PCdist)
+							{
+								PCdist = Tdist;
+								MinEdge2 = MKP[j];
+								minid = j;
+								if (Tdist1 > Tdist2)
+									bm = 1;
+								else
+									bm = 0;
+							}
+						}
+					}
+					if (bm == 1)
+					{
+						TargetP = MinEdge2[0];
+						break;
+					}
+					else if (bm == 0)
+					{
+						TargetP = MinEdge2[MinEdge2.size() - 1];
+						break;
+					}
+				}
+				if (bm == -1)
+				{
+					TargetP = MinEdge2[MinEdge2.size() - 1];
+				}
+				//测试，观察得到的最近边
+				OutPut = 0;
+				for (int j = 0; j < MinEdge1.size(); j++)
+					OutPut.at<int>(MinEdge1[j](0), MinEdge1[j](1)) = 1;
+				for (int j = 0; j < MinEdge2.size(); j++)
+					OutPut.at<int>(MinEdge2[j](0), MinEdge2[j](1)) = 1;
+				imwrite("OutPut.jpg", OutPut*255);
+				//判断：如果MinEdge1的两端距离都小于MinEdge2且Minedge1长度超过150，那么只使用Minedge1，不进行连接
+				float MD1 = sqrt(pow(MinEdge1[MinEdge1.size() - 1][0] - CircleCentre[0], 2) + pow(MinEdge1[MinEdge1.size() - 1][1] - CircleCentre[1], 2));
+				float MD21 = sqrt(pow(MinEdge2[0][0] - CircleCentre[0], 2) + pow(MinEdge2[0][1] - CircleCentre[1], 2));
+				float MD22 = sqrt(pow(MinEdge2[MinEdge2.size() - 1][0] - CircleCentre[0], 2) + pow(MinEdge2[MinEdge2.size() - 1][1] - CircleCentre[1], 2));
+				//搜索附近节点中，长度最大的节点，同时记录长度最长的边的长度
+				if (!((min(MD21, MD22) > MD1 && MinEdge1.size() > 150) || (MinEdge1.size() > 150 && MinEdge2.size() < 20)))
+					while (MKP.size() > 0)
+					{
+						int Maxsize = 0;
+						int type = 0, Minid = -1;
+						for (int s = 1; s * 25 < min(weight, height); s++) // 逐渐扩大搜索范围
+						{
+							for (int i = 0; i < MKP.size(); i++)
+							{
+								Vec2i SP = MinEdge1[MinEdge1.size() - 1];
+								Vec2i TP1 = MKP[i][0];
+								Vec2i TP2 = MKP[i][MKP[i].size() - 1];
+								float dist1 = powf(powf(SP(0) - TP1(0), 2) + powf(SP(1) - TP1(1), 2), 0.5);
+								float dist2 = powf(powf(SP(0) - TP2(0), 2) + powf(SP(1) - TP2(1), 2), 0.5);
+								float dist = min(dist1, dist2);
+								float targetdist = powf(powf(TargetP(0) - MinEdge1[MinEdge1.size() - 1](0), 2) + powf(TargetP(1) - MinEdge1[MinEdge1.size() - 1](1), 2), 0.5);
+								int size = MKP[i].size();
+								if (targetdist > 25) //搜索范围内长度最大的线段
+								{
+									if (dist < s * 25)
+									{
+										if (size > Maxsize)
+										{
+											if (dist1 == min(dist1, dist2))
+											{
+												type = 1;
+											}
+											else
+											{
+												type = 0;
+											}
+											Maxsize = size;
+											Minid = i;
+										}
+									}
+								}
+							}
+							if (Minid != -1)
+								break;
+						}
+						//如果这个权值中的距离小于开始节点和结束节点的距离，跳出
+						if (Minid == -1 || MKP[minid] == MinEdge2)
+						{
+							float PPdistt1 = sqrt(pow(MinEdge2[0][0] - MinEdge1[MinEdge1.size() - 1][0], 2) + pow(MinEdge2[0][1] - MinEdge1[MinEdge1.size() - 1][1], 2));
+							float PPdistt2 = sqrt(pow(MinEdge2[MinEdge2.size() - 1][0] - MinEdge1[MinEdge1.size() - 1][0], 2) + pow(MinEdge2[MinEdge2.size() - 1][1] - MinEdge1[MinEdge1.size() - 1][1], 2));
+							int connecttype = 0;
+							if (PPdistt1 > PPdistt2)
+								connecttype = 0;
+							else
+								connecttype = 1;
+							MinEdge1 = ConnectNode(connecttype, MinEdge2, MinEdge1, EdgeL);
+							break;
+						}
+						else
+						{
+							MinEdge1 = ConnectNode(type, MKP[Minid], MinEdge1, EdgeL);
+							MKP.erase(MKP.begin() + Minid);
+						}
+					}
+			}
+			//for (int i = 0; i < MinEdge1.size(); i++)
+			//{
+			//	OutPut.at<int>(MinEdge1[i](0), MinEdge1[i](1)) = 1;
+			//}
+			//imwrite("OutPut.jpg", OutPut * 255);
+			//将MinEdge1排序并连接到花心
+			SP1 = MinEdge1[0];
+			SP2 = MinEdge1[MinEdge1.size() - 1];
+			float K = SP1[1] / SP1[0];
+			if (EdgeChain.empty())
+			{
+				PreEdgeP1 = MinEdge1[0];
+				PreEdgeP2 = MinEdge1[MinEdge1.size() - 1];
+			}
+			else
+			{
+				Vec2i NEdgeP1 = MinEdge1[0];
+				Vec2i NEdgeP2 = MinEdge1[MinEdge1.size() - 1];
+				float PreDist1 = sqrt(pow(NEdgeP1[0] - PreEdgeP1[0], 2) + pow(NEdgeP1[1] - PreEdgeP1[1], 2));
+				float PreDist2 = sqrt(pow(NEdgeP2[0] - PreEdgeP1[0], 2) + pow(NEdgeP2[1] - PreEdgeP1[1], 2));
+				float PreDist3 = sqrt(pow(NEdgeP1[0] - PreEdgeP2[0], 2) + pow(NEdgeP1[1] - PreEdgeP2[1], 2));
+
+				if (PreDist1 > PreDist2)
+				{
+					vector<Vec2i> Temp1 = MinEdge1;
+					for (int i = 0; i < MinEdge1.size(); i++)
+					{
+						MinEdge1[i] = Temp1[MinEdge1.size() - 1 - i];
+					}
+				}
+				if (PreDist1 < PreDist3)
+				{
+					vector<Vec2i> Temp1 = EdgeChain;
+					for (int i = 0; i < EdgeChain.size(); i++)
+					{
+						EdgeChain[i] = Temp1[EdgeChain.size() - 1 - i];
+					}
+				}
+
+			}
+			MinEdge1.erase(MinEdge1.begin() + MinEdge1.size() - 1);
+
+			vector<Vec2i> CC;
+			CC.push_back(CircleCentre);
+			for (int j = 0; j < MinEdge1.size(); j++)
+				OutPut.at<float>(MinEdge1[j][0], MinEdge1[j][1]) = 1;
+			imwrite("OutPut.jpg", OutPut);
+			MinEdge1 = ConnectNode(1, CC, MinEdge1, EdgeL);
+			//MinEdge1.erase(MinEdge1.begin() + MinEdge1.size() - 1);
+			for (int j = 0; j < MinEdge1.size(); j++)
+				OutPut.at<float>(MinEdge1[j][0], MinEdge1[j][1]) = 1;
+			imwrite("OutPut.jpg", OutPut);
+			MinEdge1 = ConnectNode(1, MinEdge1, CC, EdgeL);
+			//MinEdge1.erase(MinEdge1.begin());
+			for (int j = 0; j < MinEdge1.size(); j++)
+				OutPut.at<float>(MinEdge1[j][0], MinEdge1[j][1]) = 1;
+			imwrite("OutPut.jpg", OutPut);
+			//构成总体边缘
+			if (EdgeChain.empty())
+			{
+				EdgeChain = MinEdge1;
+				//EdgeChain.erase(EdgeChain.begin() + EdgeChain.size() - 1);
+			}
+			else
+			{
+				for (int j = 0; j < MinEdge1.size() - 1; j++)
+					EdgeChain.push_back(MinEdge1[j]);
+			}
+			MKP.clear();
+		}
+
+	}
+	//测试，依次输出edgechain，看顺序对不对
+	/*OutPut = 0;*/
+	//for (int i = 0; i * 50 < EdgeChain.size(); i++)
+	//{
+	//	for (int j = 0; j < 50;j++)
+	//		OutPut.at<float>(EdgeChain[i*50+j][0], EdgeChain[i*50+j][1]) = 1;
+	//	imwrite("Edgechain.jpg", OutPut);
+	//}
 	return EdgeChain;
 }
 
@@ -824,7 +1178,7 @@ vector<Vec3i> EdgeDetect::GetKeyPoint(vector<Vec2i> EdgeChain, Vec2i CircleCentr
 	vector<Vec3i> keypoint;
 	int countup, countdown = 0;
 	int size = EdgeChain.size();
-	//初始化队列，记录前面25个点和后面25个点,并将队列重复一次
+	//初始化队列，记录前面50个点和后面50个点,并将队列重复一次
 	vector<Vec2i> pre25p, next25p;
 	for (int i = EdgeChain.size() - 50; i < EdgeChain.size(); i++)
 		pre25p.push_back(EdgeChain[i]);
@@ -856,6 +1210,14 @@ vector<Vec3i> EdgeDetect::GetKeyPoint(vector<Vec2i> EdgeChain, Vec2i CircleCentr
 			down = false;
 		}
 
+		if (EdgeChain[i][0] == CircleCentre[0] && EdgeChain[i][1] == CircleCentre[1] && down == false)
+		{
+			Vec3i downkeypoint{ EdgeChain[i](0), EdgeChain[i](1), 0 };
+			keypoint.push_back(downkeypoint);
+			down = true;
+			up = false;
+		}
+
 		if (minpre == true && minnext == true && down == false)
 		{
 			Vec3i downkeypoint = { EdgeChain[i](0), EdgeChain[i](1), 0 };
@@ -865,6 +1227,7 @@ vector<Vec3i> EdgeDetect::GetKeyPoint(vector<Vec2i> EdgeChain, Vec2i CircleCentr
 			down = true;
 			up = false;
 		}
+
 
 		pre25p.erase(pre25p.begin());
 		pre25p.push_back(EdgeChain[i]);
@@ -998,19 +1361,46 @@ void EdgeDetect::caculateEdge()
 	Vec2i CircleCentre = { int(f_o.y()), int(f_o.x()) };      //花心============================================================================
 	
 	Mat OrigenL = imread(g_filedst.toStdString());
-	Mat edgearea = imread("edgearea.jpg");
+	//imwrite("edgearea1.jpg",edgearea);
 	int height = OrigenL.rows;
 	int weight = OrigenL.cols;
 	Mat ResultL(height, weight, CV_32FC1, Scalar(0));
 	Mat GaussL(height, weight, CV_32FC3, Scalar(0));
 	Mat AllEdgeL(height, weight, CV_32FC1, Scalar(0));
+	Mat CannyResultL(height, weight, CV_32FC3, Scalar(0));
+
+	//合并轮廓区域
+	Mat AllareaM(height, weight, CV_32FC1, Scalar(0));
+	for (int i = 0; i < areanumber; i++)
+	{
+
+		string prename = "edgearea", type = ".jpg", id;
+		stringstream ids;
+		ids << i;
+		ids >> id;
+		string allfilename = prename + id + type;
+		Mat TareaM = imread(allfilename);
+		Mat TareaMGray(height, weight, CV_32FC1, Scalar(0));
+		cvtColor(TareaM, TareaMGray, CV_RGB2GRAY);
+		TareaMGray.convertTo(TareaMGray, CV_32FC1);
+		add(AllareaM, TareaMGray, AllareaM);
+	}
+	imwrite("edgearea.jpg", AllareaM);
+
+	Mat edgearea = imread("edgearea.jpg");
 
 	for (int i = 1; i < 20; i++)
 	{
 		GaussianBlur(OrigenL, GaussL, Size(7, 7), i*0.25, i*0.25);
-		Mat GaussLmasked;
-		GaussL.copyTo(GaussLmasked, edgearea);
-		GradientCaculate(GaussL, ResultL, edgearea, 16);//............
+		Canny(GaussL, CannyResultL, 180, 60);
+		Mat edgearea1(height, weight, CV_32FC1, Scalar(0));
+		cvtColor(edgearea, edgearea1, CV_RGB2GRAY);
+		Mat CannyMasked;
+		CannyResultL.copyTo(CannyMasked, edgearea1);
+		imwrite("CannyResultL.jpg", CannyMasked * 255);
+		CannyMasked.convertTo(CannyMasked, CV_32FC1);
+		add(ResultL, CannyMasked / 255, ResultL);
+
 		if (i == 1)
 		{
 			AllEdgeL = GradientCaculate(GaussL, AllEdgeL, edgearea, 16);
@@ -1018,13 +1408,14 @@ void EdgeDetect::caculateEdge()
 		}
 		printf("%d\n", i * 5);
 	}
-	EdgeChain = CEDContours(ResultL);
+	EdgeChain = CEDContours(ResultL, areanumber, CircleCentre);
 	EdgeChain.erase(EdgeChain.begin() + EdgeChain.size() - 1);
-	Mat EdgeChainMap(height, weight, CV_32SC1, Scalar(0));
+	Mat EdgeChainL(height, weight, CV_32SC1, Scalar(0));
+	EdgeChain.erase(EdgeChain.begin() + EdgeChain.size() - 1);
 	for (int i = 0; i < EdgeChain.size(); i++)
-		EdgeChainMap.at<int>(EdgeChain[i](0), EdgeChain[i](1)) = 1;
-	imwrite("EdgeL.jpg", EdgeChainMap * 255);
-    KeyChain = GetKeyPoint(EdgeChain, CircleCentre);
+		EdgeChainL.at<int>(EdgeChain[i](0), EdgeChain[i](1)) = 1;
+	imwrite("EdgeChainL.jpg", EdgeChainL * 255);
+	KeyChain = GetKeyPoint(EdgeChain, CircleCentre);
 
 	//内边缘
 	KeyChain = govalley(AllEdgeL, KeyChain, EdgeChain, CircleCentre);
@@ -1032,8 +1423,10 @@ void EdgeDetect::caculateEdge()
 	//椭圆拟合
 	int toppointsize = 0;
 	for (int i = 0; i < KeyChain.size(); i++)
-	if (KeyChain[i](2) == 1)
-		toppointsize++;
+	{
+		if (KeyChain[i](2) == 1)
+			toppointsize = toppointsize + 1;
+	}
 	CvMat *TopPoint = cvCreateMat(toppointsize, 1, CV_32FC2);
 	for (int i = 0; i < KeyChain.size(); i++)
 	{
@@ -1075,6 +1468,7 @@ void EdgeDetect::caculateEdge()
 
 	//把轮廓点投影到圆锥面上
 	contour.clear();
+	vector<Vec2i> newEdgeChain;
 	vector<Vec3f> RotatePChain;        //轮廓点的坐标=======================================================================================
 	for (int i = 0; i < EdgeChain.size(); i++)
 	{
@@ -1106,9 +1500,19 @@ void EdgeDetect::caculateEdge()
 		RotatePChain.push_back(RotatedP);
 		
 		coor t = { RotatedP(0), -RotatedP(1), RotatedP(2) };//.....................
-		contour.push_back(t);
-		
+		if ((!contour.empty())&&(fabs(contour.back().x) < 1e-4)&&(fabs(contour.back().y) < 1e-4)&&(fabs(contour.back().z) < 1e-4)&&
+			(fabs(t.x) < 1e-4)&&(fabs(t.y) < 1e-4)&&(fabs(t.z) < 1e-4))
+		{
+		}
+		else
+		{
+			contour.push_back(t);
+			newEdgeChain.push_back(EdgeChain[i]);
+
+		}
 	}
+	EdgeChain.clear();
+	EdgeChain = newEdgeChain;
 
 	//把顶点和凹点点投影到圆锥面上
 	keypoints.clear();
@@ -1195,10 +1599,12 @@ double EdgeDetect::getAngle()
 
 vector<Vec2i> EdgeDetect::getContourpic()
 {
-	return EdgeChain;
+ 	return EdgeChain;
 }
+
 
 vector<Vec3i> EdgeDetect::getKeyChain()
 {
 	return KeyChain;
 }
+

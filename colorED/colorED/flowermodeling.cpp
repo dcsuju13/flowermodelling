@@ -97,32 +97,17 @@ void flowermodeling::on_Button_paint_clicked()
 
 void flowermodeling::on_Button_done_clicked()
 {
-	//得到提取边缘的区域
-	QVector<QPointF> ea = brush->getEDArea();
 	
-	edgeArea = Mat(image->height(), image->width(), CV_8UC1, Scalar(0));
-
-	for (int i = 0; i < ea.size(); i++)
-	{	
-		int x = ea[i].x();
-		int y = ea[i].y();
-		if (x >= image->width() || y >= image->height()||x<=0||y<=0)
-			continue;
-		if (edgeArea.at<uchar>(y, x)==0)
-		    edgeArea.at<uchar>(y, x) = 255;
-	}
-	
-	imwrite("edgearea.jpg", edgeArea);
 	
 
 	//keypoint
 	f_o = MyPointItem::f_o;
 
-	edgedetect = EdgeDetect(f_o);
+	edgedetect = EdgeDetect(f_o,brush->getMaskCount());
 	edgedetect.caculateEdge();//计算边缘
 
 	//显示边缘图
-	image->load("EdgeL.jpg");
+	image->load("EdgeChainL.jpg");
 	QGraphicsScene *scene1 = new QGraphicsScene();
 	scene1->addPixmap(QPixmap::fromImage(*image));
 

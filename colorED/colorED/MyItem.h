@@ -5,8 +5,12 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <sstream>
 #include "global.h"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 
+using namespace cv;
 using namespace std;
 
 #define PAINT 1
@@ -24,6 +28,7 @@ public:
 
 	void ClearedgeArea();//清空笔刷区域
 	QVector<QPointF> getEDArea();
+	int getMaskCount();
 
 protected:
 	void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -40,6 +45,7 @@ private:
 	int count_num=0;
 	int height, width;
 	int Acoption=0;
+	int countImage = 0;//记录存储多少张Mask图
 	
 	QPointF now;//当前位置
 	

@@ -86,7 +86,7 @@ void MyGL::resizeGL(int width, int height)
 void MyGL::loadGLTexture()
 {
 	QImage tex, buf;
-	if (!buf.load("egg.jpg")){
+	if (!buf.load(g_filedst)){
 		QImage dummy(128, 128, QImage::Format_RGB32);
 		dummy.fill(QColor(Qt::green).rgb());
 		buf = dummy;
@@ -335,21 +335,21 @@ void MyGL::mouseMoveEvent(QMouseEvent *event)
 
 void MyGL::wheelEvent(QWheelEvent *e)
 {
-	if (e->buttons()&Qt::MiddleButton)
+	if (e->orientation() == Qt::Horizontal)
 	{
-		int numDegrees = e->delta()/8;
 
-		if (numDegrees>0)
-		{
-			translationZ -= 5*numDegrees;
-			updateGL();
-		}
-		else
-		{
-			translationZ += 5*numDegrees;
-			updateGL();
-		}
 	}
+	else{
+		GLfloat zValue = e->delta() / 8;
+		translationZ -= zValue * 5;
+		if (translationZ>1.0)
+		{
+			translationZ -= zValue * 5;
+
+		}
+
+	}
+	updateGL();
 	return;
 }
 
